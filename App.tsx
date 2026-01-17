@@ -23,7 +23,6 @@ import ZenWaterGarden from './components/ZenWaterGarden';
 const STORAGE_KEY = 'saarathi_v4_storage';
 const DATA_VERSION = 4;
 
-// Fix: Added missing language keys to satisfy the Record<AppLanguage, any> type requirement.
 const UI_TRANSLATIONS: Record<AppLanguage, any> = {
   'English': { input: 'Pulse', report: 'Insight', chat: 'Counsel', analyze: 'Generate Strategy', myHuddle: 'Growth sanctuary' },
   'Hinglish': { input: 'Pulse', report: 'Insight', chat: 'Counsel', analyze: 'Generate Strategy', myHuddle: 'Growth sanctuary' },
@@ -100,6 +99,18 @@ const App: React.FC = () => {
     setActiveTab('input');
   };
 
+  const deleteRecord = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (window.confirm("Remove this profile from the pool?")) {
+      const filtered = records.filter(r => r.id !== id);
+      setRecords(filtered);
+      if (activeId === id) {
+        setActiveId(null);
+        setData({ employeeName: '', role: '', metrics: INITIAL_METRICS, observations: [], context: '', sentiment: 'Eager', sentimentNotes: '' });
+      }
+    }
+  };
+
   const handleGenerateReport = async () => {
     if (!data.employeeName.trim() || !activeId) return;
     setIsLoading(true);
@@ -152,13 +163,16 @@ const App: React.FC = () => {
 
           <div className="flex-1 overflow-y-auto space-y-4 custom-scrollbar pr-2">
             {records.map(record => (
-              <button key={record.id} onClick={() => loadEmployee(record)} className={`w-full text-left p-5 rounded-[2rem] transition-all border-2 ${activeId === record.id ? 'bg-white border-white shadow-2xl ring-1 ring-[#B8860B]/10' : 'bg-transparent border-transparent hover:bg-white/40'}`}>
+              <button key={record.id} onClick={() => loadEmployee(record)} className={`w-full text-left p-5 rounded-[2rem] transition-all border-2 group relative ${activeId === record.id ? 'bg-white border-white shadow-2xl ring-1 ring-[#B8860B]/10' : 'bg-transparent border-transparent hover:bg-white/40'}`}>
                 <div className="flex items-center gap-4">
                   <div className={`w-12 h-12 rounded-[1.25rem] flex items-center justify-center font-black text-sm ${activeId === record.id ? 'bg-slate-900 text-white' : 'bg-white text-slate-400 border border-slate-100'}`}>{record.data.employeeName.charAt(0)}</div>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <h3 className="font-bold text-slate-800 text-sm truncate">{record.data.employeeName}</h3>
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest truncate">{record.data.role || 'Strategic Focus'}</p>
                   </div>
+                  <button onClick={(e) => deleteRecord(record.id, e)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-300 hover:text-red-500 transition-all">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                  </button>
                 </div>
               </button>
             ))}
@@ -176,7 +190,6 @@ const App: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Perspective Selector */}
             <div className="hidden md:flex items-center gap-3 bg-white/60 backdrop-blur-md px-5 py-3 rounded-[1.5rem] border border-white shadow-sm ring-1 ring-slate-100">
               <span className="text-[9px] font-black text-[#B8860B] uppercase tracking-widest">Perspective</span>
               <select value={mode} onChange={(e) => setMode(e.target.value as CoachingMode)} className="bg-transparent border-none text-[11px] font-black focus:ring-0 cursor-pointer text-slate-800">
@@ -184,7 +197,6 @@ const App: React.FC = () => {
                 <option value="Self">Self-Coach Mode</option>
               </select>
             </div>
-            {/* Persona Selector */}
             <div className="hidden md:flex items-center gap-3 bg-white/60 backdrop-blur-md px-5 py-3 rounded-[1.5rem] border border-white shadow-sm ring-1 ring-slate-100">
               <span className="text-[9px] font-black text-[#B8860B] uppercase tracking-widest">Coach Tone</span>
               <select value={persona} onChange={(e) => setPersona(e.target.value as LeadershipPersona)} className="bg-transparent border-none text-[11px] font-black focus:ring-0 cursor-pointer text-slate-800">
@@ -194,7 +206,6 @@ const App: React.FC = () => {
           </div>
         </header>
 
-        {/* Tab switcher */}
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50">
           <nav className="flex bg-white/80 backdrop-blur-2xl rounded-full p-2 border border-white/50 shadow-2xl ring-1 ring-slate-100">
             {(['input', 'report', 'chat'] as const).map(tab => (
@@ -212,7 +223,7 @@ const App: React.FC = () => {
                  <h2 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-tighter mb-6 leading-none">
                     {mode === 'Manager' ? 'Guide Your Team.' : 'Unleash Your Potential.'}
                  </h2>
-                 <p className="text-slate-400 font-medium text-lg mb-12 px-10">Start a new coaching cycle to receive high-fidelity, empathetic insights.</p>
+                 <p className="text-slate-400 font-medium text-lg mb-12 px-10">Select a profile from the pool or start a new leadership cycle.</p>
                  <button onClick={createNewEmployee} className="px-12 py-6 bg-slate-900 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] shadow-2xl hover:bg-[#B8860B] transition-all">Initiate Journey</button>
               </div>
             </div>
@@ -238,7 +249,7 @@ const App: React.FC = () => {
                     </div>
 
                     <div className="mb-16 space-y-6">
-                      <label className="text-[10px] font-black text-[#B8860B] uppercase tracking-widest px-1">Behavioral Sentiment (The Pulse)</label>
+                      <label className="text-[10px] font-black text-[#B8860B] uppercase tracking-widest px-1">Behavioral Sentiment</label>
                       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <select value={data.sentiment} onChange={(e) => setData({...data, sentiment: e.target.value as SentimentType})} className="w-full bg-white border border-slate-100 rounded-[1.75rem] px-10 py-7 text-sm font-bold text-slate-800 appearance-none shadow-sm cursor-pointer">
                           {(Object.keys(SENTIMENT_MAP) as SentimentType[]).map(s => <option key={s} value={s}>{SENTIMENT_MAP[s].emoji} {s}</option>)}
@@ -267,7 +278,12 @@ const App: React.FC = () => {
                     </div>
 
                     <button onClick={handleGenerateReport} disabled={isLoading || !data.employeeName} className="w-full py-8 bg-slate-900 text-white rounded-[2.5rem] font-black text-xs uppercase tracking-[0.4em] shadow-2xl hover:bg-[#B8860B] flex items-center justify-center gap-6 group disabled:opacity-50">
-                      {isLoading ? 'Synthesizing Insight...' : (mode === 'Self' ? 'Self-Reflect' : 'Analyze Performance')}
+                      {isLoading ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-white/20 border-t-white animate-spin rounded-full"></div>
+                          <span>Deep Strategic Reasoning...</span>
+                        </>
+                      ) : (mode === 'Self' ? 'Self-Reflect' : 'Analyze Performance')}
                     </button>
                   </section>
                 </div>
@@ -300,6 +316,24 @@ const App: React.FC = () => {
                         <div className="pt-20 border-t border-slate-100">
                           <MetricChart metrics={activeReport.metricSnapshot?.metrics || []} />
                         </div>
+
+                        {/* Search Grounding Citations */}
+                        {activeReport.groundingSources && activeReport.groundingSources.length > 0 && (
+                          <div className="pt-20 border-t border-slate-100">
+                             <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-8">Research & Management Grounding</h4>
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                               {activeReport.groundingSources.map((source, i) => (
+                                 <a key={i} href={source.uri} target="_blank" rel="noopener noreferrer" className="p-6 bg-slate-50 border border-slate-100 rounded-2xl hover:border-[#B8860B]/30 transition-all flex items-center justify-between group">
+                                   <div className="min-w-0">
+                                     <span className="block text-xs font-bold text-slate-800 truncate">{source.title}</span>
+                                     <span className="block text-[10px] text-slate-400 truncate mt-1">{new URL(source.uri).hostname}</span>
+                                   </div>
+                                   <svg className="w-4 h-4 text-slate-300 group-hover:text-[#B8860B]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                                 </a>
+                               ))}
+                             </div>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -308,7 +342,7 @@ const App: React.FC = () => {
                          <h4 className="text-[9px] font-black text-[#B8860B] uppercase tracking-[0.3em] mb-4">{mode === 'Self' ? 'Self-Compassion Check' : 'Empathy Insight'}</h4>
                          <p className="text-base font-bold text-slate-700/60 italic leading-relaxed">"{activeReport.empathyNote}"</p>
                       </div>
-                      <div className="bg-white border border-slate-100 rounded-[3.5rem] p-12">
+                      <div className="bg-white border border-slate-100 rounded-[3.5rem] p-12 shadow-sm">
                         <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-10 text-center">{mode === 'Self' ? 'Introspection Prompts' : 'Conversation Architecture'}</h4>
                         <div className="space-y-6">
                           {activeReport.coachingConversationStarters.map((s, i) => (
@@ -331,12 +365,21 @@ const App: React.FC = () => {
                   <div className="flex-1 overflow-y-auto p-12 space-y-10 bg-slate-50/10 custom-scrollbar">
                     {messages.map((m, i) => (
                       <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[75%] p-10 rounded-[3rem] text-sm leading-relaxed font-bold ${m.role === 'user' ? 'bg-slate-900 text-white' : 'bg-white text-slate-800 border border-slate-100'}`}>{m.text}</div>
+                        <div className={`max-w-[75%] p-10 rounded-[3rem] text-sm leading-relaxed font-bold ${m.role === 'user' ? 'bg-slate-900 text-white shadow-xl' : 'bg-white text-slate-800 border border-slate-100 shadow-sm'}`}>{m.text}</div>
                       </div>
                     ))}
+                    {isLoading && (
+                       <div className="flex justify-start">
+                         <div className="bg-white border border-slate-100 p-8 rounded-[2rem] flex gap-2">
+                           <div className="w-1.5 h-1.5 bg-[#B8860B] rounded-full animate-bounce"></div>
+                           <div className="w-1.5 h-1.5 bg-[#B8860B] rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                           <div className="w-1.5 h-1.5 bg-[#B8860B] rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                         </div>
+                       </div>
+                    )}
                   </div>
                   <div className="p-10 bg-white border-t border-slate-100 flex gap-6">
-                    <input className="flex-1 bg-slate-50/50 border-2 border-slate-100 rounded-[2.5rem] px-10 py-7 text-sm font-bold text-slate-700" placeholder="Discuss the strategy..." value={inputValue} onChange={e => setInputValue(e.target.value)} onKeyDown={e => e.key === 'Enter' && (async () => {
+                    <input className="flex-1 bg-slate-50/50 border-2 border-slate-100 rounded-[2.5rem] px-10 py-7 text-sm font-bold text-slate-700 outline-none focus:border-[#B8860B]/20 transition-all" placeholder="Discuss the strategy..." value={inputValue} onChange={e => setInputValue(e.target.value)} onKeyDown={e => e.key === 'Enter' && (async () => {
                       if (!inputValue.trim() || isLoading) return;
                       const msg = inputValue; setInputValue('');
                       setMessages(prev => [...prev, { role: 'user', text: msg, timestamp: new Date() }]);

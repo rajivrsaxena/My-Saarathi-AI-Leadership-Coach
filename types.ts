@@ -11,7 +11,6 @@ export type CoachingMode = 'Manager' | 'Self';
 export type SharePermission = 'view' | 'edit';
 export type AppLanguage = 'English' | 'Hinglish' | 'Tamil' | 'Malayalam' | 'Gujarati' | 'Kannada' | 'Bengali';
 
-// Defined SentimentType for psychological profiling
 export type SentimentType = 'Eager' | 'Anxious' | 'Focused' | 'Stressed' | 'Burnout' | 'Curious';
 
 export interface Metric {
@@ -43,6 +42,11 @@ export interface CoachingAction {
   supportNeeded: string;
 }
 
+export interface GroundingSource {
+  title: string;
+  uri: string;
+}
+
 export interface CoachingReport {
   id: string;
   timestamp: string;
@@ -55,6 +59,7 @@ export interface CoachingReport {
   n8nPayload: string;
   learningSources?: string[];
   references?: string[]; 
+  groundingSources?: GroundingSource[];
   metricSnapshot?: PerformanceData; 
 }
 
@@ -70,13 +75,6 @@ export interface Message {
   role: 'user' | 'model';
   text: string;
   timestamp: Date;
-}
-
-export interface SharedState {
-  data: PerformanceData;
-  report: CoachingReport | null;
-  persona: LeadershipPersona;
-  permission: SharePermission;
 }
 
 export interface PersistentStorage {

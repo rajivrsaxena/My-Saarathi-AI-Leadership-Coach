@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { PerformanceData, CoachingReport, LeadershipPersona, AppLanguage, CoachingMode } from '../types';
+import { PerformanceData, CoachingReport, LeadershipPersona, AppLanguage, CoachingMode, GroundingSource } from '../types';
 import { SYSTEM_INSTRUCTION, PERSONA_CONFIGS, MODE_CONFIGS } from '../constants';
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -27,9 +27,9 @@ export const generateCoachingReport = async (
     
     CRITICAL RULES:
     1. DO NOT REPEAT THE INPUT DATA. Tell them what the numbers *mean* for the future.
-    2. LANGUAGE: Use ${language}. Keep it conversational.
-    3. SELF-COACHING SPECIAL: If mode is 'Self', the 'overallAssessment' should be phrased as a personal reflection. The 'empathyNote' should be a self-compassion check.
-    4. REFERENCES: List research models used ONLY in the 'references' array.
+    2. LANGUAGE: Use ${language}.
+    3. If mode is 'Self', phrase findings as personal reflection.
+    4. Provide specific tactical n8n automation suggestions in the payload.
   `;
 
   const prompt = `
@@ -39,8 +39,7 @@ export const generateCoachingReport = async (
     Context: ${data.context || 'Regular cycle.'}
     State: ${data.sentiment} (${data.sentimentNotes})
 
-    As a ${persona} in ${mode} mode, provide a deep assessment. 
-    Output in ${language}.
+    As a ${persona} in ${mode} mode, provide a deep assessment.
   `;
 
   const response = await ai.models.generateContent({
@@ -48,22 +47,19 @@ export const generateCoachingReport = async (
     contents: prompt,
     config: {
       systemInstruction: combinedSystemInstruction,
+      thinkingConfig: { thinkingBudget: 2000 },
       tools: [{ googleSearch: {} }],
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
         properties: {
-          overallAssessment: { 
-            type: Type.STRING,
-            description: "Deep narrative dive into hidden problems and solutions."
-          },
-          empathyNote: { type: Type.STRING, description: "A high-empathy perspective or self-compassion note." },
+          overallAssessment: { type: Type.STRING },
+          empathyNote: { type: Type.STRING },
           performanceGapAnalysis: { type: Type.STRING },
           sentimentInsight: { type: Type.STRING },
           coachingConversationStarters: {
             type: Type.ARRAY,
-            items: { type: Type.STRING },
-            description: "If mode=Manager, questions for the employee. If mode=Self, questions for introspection."
+            items: { type: Type.STRING }
           },
           actionPlan: {
             type: Type.ARRAY,
@@ -78,10 +74,6 @@ export const generateCoachingReport = async (
             }
           },
           n8nPayload: { type: Type.STRING },
-          learningSources: {
-            type: Type.ARRAY,
-            items: { type: Type.STRING }
-          },
           references: {
             type: Type.ARRAY,
             items: { type: Type.STRING }
@@ -92,10 +84,24 @@ export const generateCoachingReport = async (
     }
   });
 
+  const groundingSources: GroundingSource[] = [];
+  const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+  if (chunks) {
+    chunks.forEach((chunk: any) => {
+      if (chunk.web) {
+        groundingSources.push({
+          title: chunk.web.title || 'Research Source',
+          uri: chunk.web.uri
+        });
+      }
+    });
+  }
+
   try {
     const text = response.text;
     if (!text) throw new Error("Empty response from AI");
-    return JSON.parse(text);
+    const parsed = JSON.parse(text);
+    return { ...parsed, groundingSources };
   } catch (e) {
     console.error("Failed to parse AI response", e);
     throw new Error("Invalid response format from AI");
@@ -110,20 +116,11 @@ export const chatWithLeader = async (
   mode: CoachingMode
 ) => {
   const model = 'gemini-3-pro-preview';
-  
-  const combinedSystemInstruction = `
-    ${SYSTEM_INSTRUCTION}
-    COACHING PERSPECTIVE: ${mode}
-    ${MODE_CONFIGS[mode]}
-    ACTIVE PERSONA: ${persona}
-    ${PERSONA_CONFIGS[persona]}
-    LANGUAGE: ${language}.
-  `;
-
   const chat = ai.chats.create({
     model,
     config: {
-      systemInstruction: combinedSystemInstruction,
+      systemInstruction: `${SYSTEM_INSTRUCTION} Mode: ${mode}. Persona: ${persona}. Lang: ${language}.`,
+      thinkingConfig: { thinkingBudget: 1000 },
       tools: [{ googleSearch: {} }]
     }
   });
